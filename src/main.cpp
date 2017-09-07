@@ -7,6 +7,8 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
+#include "frameBuffer.hpp"
+
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -15,6 +17,7 @@ namespace {
     const static char* WINDOW_TITLE = "rasterry";
     GLsizei XRES = 1280;
     GLsizei YRES = 720;
+    bool RESIZED = false;
 }
 
 void keyCallback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action,
@@ -31,6 +34,7 @@ void windowSizeCallback(GLFWwindow* window, int width, int height)
     (void) window;
     XRES = width;
     YRES = height;
+    RESIZED = true;
     glViewport(0, 0, XRES, YRES);
 }
 
@@ -97,11 +101,24 @@ int main()
     glfwSetWindowSizeCallback(windowPtr, windowSizeCallback);
     glfwSetKeyCallback(windowPtr, keyCallback);
 
+    // Init buffer
+    FrameBuffer fb(XRES, YRES);
+
     // Run the main loop
+    uint32_t frameCount = 0;
     while (!glfwWindowShouldClose(windowPtr)) {
+        if (RESIZED) {
+            fb.resize(XRES, YRES);
+        }
         glfwPollEvents();
 
+        float color = float(frameCount) * 0.0167;
+        for (auto i = 0u; i < fb.width() * fb.height() * 3; i++) {
+            fb.pixelArray()[i] = color;
+        }
+        fb.display();
         glfwSwapBuffers(windowPtr);
+        frameCount = frameCount < 60 ? frameCount + 1 : 0;
     }
 
     glfwDestroyWindow(windowPtr);
