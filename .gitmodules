@@ -1,0 +1,6 @@
+[submodule "ext/glfw"]
+	path = ext/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "ext/libgl3w"]
+	path = ext/libgl3w
+	url = https://github.com/sndels/libgl3w.git
