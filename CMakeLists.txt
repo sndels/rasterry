@@ -31,5 +31,6 @@ target_link_libraries(rasterry
     PRIVATE
     ${OPENGL_LIBRARIES}
     glfw
+    glm
     libgl3w
 )
