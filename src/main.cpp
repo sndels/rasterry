@@ -30,15 +30,6 @@ void keyCallback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t acti
         glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
-void windowSizeCallback(GLFWwindow* window, int width, int height)
-{
-    (void) window;
-    XRES = width;
-    YRES = height;
-    RESIZED = true;
-    glViewport(0, 0, XRES, YRES);
-}
-
 static void errorCallback(int error, const char* description)
 {
     cerr << "GLFW error " << error << ": " << description << endl;
@@ -64,6 +55,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     // Create the window
     GLFWwindow* windowPtr;
@@ -99,7 +91,6 @@ int main()
     }
 
     // Set glfw-callbacks, these will pass to imgui's callbacks if overridden
-    glfwSetWindowSizeCallback(windowPtr, windowSizeCallback);
     glfwSetKeyCallback(windowPtr, keyCallback);
 
     // Init buffer
@@ -113,9 +104,6 @@ int main()
     const Color red(255, 0, 0);
 
     while (!glfwWindowShouldClose(windowPtr)) {
-        if (RESIZED) {
-            fb.resize(XRES, YRES);
-        }
         glfwPollEvents();
 
         drawLine(glm::ivec2(160, 120), glm::ivec2(480, 360), white, &fb);

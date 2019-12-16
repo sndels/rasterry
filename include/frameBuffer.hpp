@@ -15,7 +15,6 @@ public:
 
     uint32_t width();
     uint32_t height();
-    void     resize(uint32_t width, uint32_t height);
     void     setPixel(const glm::uvec2& p, const Color& color);
     void     display();
 

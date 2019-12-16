@@ -38,21 +38,6 @@ uint32_t FrameBuffer::height()
     return _height;
 }
 
-void FrameBuffer::resize(uint32_t width, uint32_t height)
-{
-    _width = width;
-    _height = height;
-    _pixels.resize(width * height);
-
-    glBindTexture(GL_TEXTURE_2D, _textureID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, _width, _height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
 void FrameBuffer::setPixel(const glm::uvec2& p, const Color& color) {
     _pixels[p.y * _width + p.x] = color;
 }
