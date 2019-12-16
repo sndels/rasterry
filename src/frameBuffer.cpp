@@ -50,3 +50,10 @@ void FrameBuffer::display()
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     glBlitFramebuffer(0, 0, _res.x, _res.y, 0, 0, _outRes.x, _outRes.y, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
+
+void FrameBuffer::clear(const Color& color)
+{
+    for (size_t i = 0; i < _res.x * _res.y; ++i) {
+        _pixels[i] = color;
+    }
+}

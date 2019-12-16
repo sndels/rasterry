@@ -16,6 +16,7 @@ public:
     const glm::uvec2& res() const;
     void setPixel(const glm::uvec2& p, const Color& color);
     void display();
+    void clear(const Color& color);
 
 private:
     glm::uvec2 _res;

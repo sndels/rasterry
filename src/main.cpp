@@ -107,10 +107,13 @@ int main()
     while (!glfwWindowShouldClose(windowPtr)) {
         glfwPollEvents();
 
+        fb.clear(Color(0, 0, 0));
+
         drawLine(glm::ivec2(160, 120), glm::ivec2(480, 360), white, &fb);
         drawLine(glm::ivec2(480, 120), glm::ivec2(160, 360), red, &fb);
 
         fb.display();
+
         glfwSwapBuffers(windowPtr);
         frameCount = frameCount < 60 ? frameCount + 1 : 0;
     }
