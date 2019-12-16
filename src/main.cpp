@@ -16,8 +16,9 @@ using std::endl;
 
 namespace {
     const static char* WINDOW_TITLE = "rasterry";
-    GLsizei XRES = 640;
-    GLsizei YRES = 480;
+    glm::uvec2 RES(640, 480);
+    uint32_t OUTPUT_SCALE = 2;
+    glm::uvec2 OUTPUT_RES = RES * OUTPUT_SCALE;
     bool RESIZED = false;
 }
 
@@ -59,7 +60,7 @@ int main()
 
     // Create the window
     GLFWwindow* windowPtr;
-    windowPtr = glfwCreateWindow(XRES, YRES, WINDOW_TITLE, NULL, NULL);
+    windowPtr = glfwCreateWindow(OUTPUT_RES.x, OUTPUT_RES.y, WINDOW_TITLE, NULL, NULL);
     if (!windowPtr) {
         glfwTerminate();
         cerr << "Error creating GLFW-window!" << endl;
@@ -79,7 +80,7 @@ int main()
     glfwSwapInterval(1);
 
     // Init GL settings
-    glViewport(0, 0, XRES, YRES);
+    glViewport(0, 0, OUTPUT_RES.x, OUTPUT_RES.y);
     glClearColor(0.f, 0.f, 0.f, 1.f);
 
     GLenum error = glGetError();
@@ -94,7 +95,7 @@ int main()
     glfwSetKeyCallback(windowPtr, keyCallback);
 
     // Init buffer
-    FrameBuffer fb(XRES, YRES);
+    FrameBuffer fb(RES, OUTPUT_RES);
 
     // Run the main loop
     uint32_t frameCount = 0;

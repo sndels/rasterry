@@ -10,17 +10,16 @@
 class FrameBuffer
 {
 public:
-    FrameBuffer(uint32_t width, uint32_t height);
+    FrameBuffer(glm::uvec2 res, glm::uvec2 outRes);
     ~FrameBuffer();
 
-    uint32_t width();
-    uint32_t height();
+    const glm::uvec2& res() const;
     void     setPixel(const glm::uvec2& p, const Color& color);
     void     display();
 
 private:
-    uint32_t             _width;
-    uint32_t             _height;
+    glm::uvec2 _res;
+    glm::uvec2 _outRes;
     std::vector<Color> _pixels;
 
     GLuint             _fbo;
