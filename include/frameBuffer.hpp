@@ -1,8 +1,11 @@
 #ifndef FRAMEBUFFER_HPP
 #define FRAMEBUFFER_HPP
 
-#include <vector>
 #include <GL/gl3w.h>
+#include <glm/glm.hpp>
+#include <vector>
+
+#include "color.hpp"
 
 class FrameBuffer
 {
@@ -13,13 +16,13 @@ public:
     uint32_t width();
     uint32_t height();
     void     resize(uint32_t width, uint32_t height);
-    uint8_t*   pixelArray();
+    void     setPixel(const glm::uvec2& p, const Color& color);
     void     display();
 
 private:
     uint32_t             _width;
     uint32_t             _height;
-    std::vector<uint8_t> _pixels;
+    std::vector<Color> _pixels;
 
     GLuint             _fbo;
     GLuint             _textureID;

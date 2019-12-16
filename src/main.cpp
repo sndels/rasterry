@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "frameBuffer.hpp"
+#include "line.hpp"
 
 using std::cout;
 using std::cerr;
@@ -15,8 +16,8 @@ using std::endl;
 
 namespace {
     const static char* WINDOW_TITLE = "rasterry";
-    GLsizei XRES = 1280;
-    GLsizei YRES = 720;
+    GLsizei XRES = 640;
+    GLsizei YRES = 480;
     bool RESIZED = false;
 }
 
@@ -106,16 +107,20 @@ int main()
 
     // Run the main loop
     uint32_t frameCount = 0;
+
+    // Line to draw
+    const Color white(255, 255, 255);
+    const Color red(255, 0, 0);
+
     while (!glfwWindowShouldClose(windowPtr)) {
         if (RESIZED) {
             fb.resize(XRES, YRES);
         }
         glfwPollEvents();
 
-        uint8_t color = uint8_t(frameCount * 256.f / 60.f);
-        for (auto i = 0u; i < fb.width() * fb.height() * 3; i++) {
-            fb.pixelArray()[i] = color;
-        }
+        drawLine(glm::ivec2(160, 120), glm::ivec2(480, 360), white, &fb);
+        drawLine(glm::ivec2(480, 120), glm::ivec2(160, 360), red, &fb);
+
         fb.display();
         glfwSwapBuffers(windowPtr);
         frameCount = frameCount < 60 ? frameCount + 1 : 0;
