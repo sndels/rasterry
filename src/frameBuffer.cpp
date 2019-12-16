@@ -1,7 +1,7 @@
 #include "frameBuffer.hpp"
 
 FrameBuffer::
-    FrameBuffer(glm::uvec2 res, glm::uvec2 outRes) :
+    FrameBuffer(const glm::uvec2& res, const glm::uvec2& outRes) :
     _res(res),
     _outRes(outRes),
     _pixels(_res.x * _res.y)
