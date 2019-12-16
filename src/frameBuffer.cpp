@@ -11,7 +11,7 @@ FrameBuffer::FrameBuffer(uint32_t width, uint32_t height) :
     // Generate texture
     glGenTextures(1, &_textureID);
     glBindTexture(GL_TEXTURE_2D, _textureID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, _width, _height, 0, GL_RGB, GL_FLOAT, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, _width, _height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -45,7 +45,7 @@ void FrameBuffer::resize(uint32_t width, uint32_t height)
     _pixels.resize(width * height * 3);
 }
 
-float* FrameBuffer::pixelArray()
+uint8_t* FrameBuffer::pixelArray()
 {
     return _pixels.data();
 }
@@ -54,7 +54,7 @@ void FrameBuffer::display()
 {
     // Push new frame to buffer
     glBindTexture(GL_TEXTURE_2D, _textureID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _width, _height, 0, GL_RGB, GL_FLOAT, _pixels.data());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _width, _height, 0, GL_RGB, GL_UNSIGNED_BYTE, _pixels.data());
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // Blit to default buffer

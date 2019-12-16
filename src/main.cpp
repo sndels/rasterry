@@ -112,7 +112,7 @@ int main()
         }
         glfwPollEvents();
 
-        float color = float(frameCount) * 0.0167;
+        uint8_t color = uint8_t(frameCount * 256.f / 60.f);
         for (auto i = 0u; i < fb.width() * fb.height() * 3; i++) {
             fb.pixelArray()[i] = color;
         }
