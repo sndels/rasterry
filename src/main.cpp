@@ -9,17 +9,30 @@
 
 #include "frameBuffer.hpp"
 #include "line.hpp"
+#include "loader.hpp"
+#include "timer.hpp"
 
 using std::cout;
 using std::cerr;
 using std::endl;
+
+void drawModel(const Model& model, const Color& color, FrameBuffer* fb)
+{
+    for (const auto& tri : model.tris) {
+        const glm::vec3 v0 = model.verts[tri.v0] * 2000.f + glm::vec3(350.f, 50.f, 0.f);
+        const glm::vec3 v1 = model.verts[tri.v1] * 2000.f + glm::vec3(350.f, 50.f, 0.f);
+        const glm::vec3 v2 = model.verts[tri.v2] * 2000.f + glm::vec3(350.f, 50.f, 0.f);
+        drawLine(glm::ivec2(v0), glm::ivec2(v1), color, fb);
+        drawLine(glm::ivec2(v1), glm::ivec2(v2), color, fb);
+        drawLine(glm::ivec2(v2), glm::ivec2(v0), color, fb);
+    }
+}
 
 namespace {
     const static char* WINDOW_TITLE = "rasterry";
     glm::uvec2 RES(640, 480);
     uint32_t OUTPUT_SCALE = 2;
     glm::uvec2 OUTPUT_RES = RES * OUTPUT_SCALE;
-    bool RESIZED = false;
 }
 
 void keyCallback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action,
@@ -36,17 +49,8 @@ static void errorCallback(int error, const char* description)
     cerr << "GLFW error " << error << ": " << description << endl;
 }
 
-#ifdef _WIN32
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdShow)
-{
-    (void) hInstance;
-    (void) hPrevInstance;
-    (void) lpCmdLine;
-    (void) nCmdShow;
-#else
 int main()
 {
-#endif // _WIN32
     // Init GLFW-context
     glfwSetErrorCallback(errorCallback);
     if (!glfwInit()) exit(EXIT_FAILURE);
@@ -97,25 +101,33 @@ int main()
     // Init buffer
     FrameBuffer fb(RES, OUTPUT_RES);
 
-    // Run the main loop
-    uint32_t frameCount = 0;
-
-    // Line to draw
     const Color white(255, 255, 255);
     const Color red(255, 0, 0);
 
+    // Load model
+    Model model = loadOBJ(RES_DIRECTORY "obj/bunny.obj");
+
+    Timer t;
     while (!glfwWindowShouldClose(windowPtr)) {
         glfwPollEvents();
 
+        t.reset();
         fb.clear(Color(0, 0, 0));
+        float clearTime = t.getMillis();
 
-        drawLine(glm::ivec2(160, 120), glm::ivec2(480, 360), white, &fb);
-        drawLine(glm::ivec2(480, 120), glm::ivec2(160, 360), red, &fb);
+        t.reset();
+        drawModel(model, white, &fb);
+        float drawTime = t.getMillis();
 
+        t.reset();
         fb.display();
-
         glfwSwapBuffers(windowPtr);
-        frameCount = frameCount < 60 ? frameCount + 1 : 0;
+        float swapTime = t.getMillis();
+
+        printf(
+            "\rclear %.2fms draw %.2fms swap %.2fms          ",
+            clearTime, drawTime, swapTime
+        );
     }
 
     glfwDestroyWindow(windowPtr);

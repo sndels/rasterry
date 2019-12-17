@@ -21,8 +21,10 @@ add_subdirectory(ext)
 
 include_directories(include ext/libgl3w/include ext/glfw/include)
 
-# WIN32 tells to not build a cmd-app on windows
-add_executable(rasterry WIN32
+# Set absolute path to res directory
+add_definitions(-DRES_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/")
+
+add_executable(rasterry
     ${SOURCES}
     ${HEADERS}
 )
