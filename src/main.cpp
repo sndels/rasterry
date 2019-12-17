@@ -8,7 +8,7 @@
 #include <iostream>
 
 #include "frameBuffer.hpp"
-#include "line.hpp"
+#include "clip.hpp"
 #include "loader.hpp"
 #include "timer.hpp"
 
@@ -19,12 +19,12 @@ using std::endl;
 void drawModel(const Model& model, const Color& color, FrameBuffer* fb)
 {
     for (const auto& tri : model.tris) {
-        const glm::vec3 v0 = model.verts[tri.v0] * 2000.f + glm::vec3(350.f, 50.f, 0.f);
-        const glm::vec3 v1 = model.verts[tri.v1] * 2000.f + glm::vec3(350.f, 50.f, 0.f);
-        const glm::vec3 v2 = model.verts[tri.v2] * 2000.f + glm::vec3(350.f, 50.f, 0.f);
-        drawLine(glm::ivec2(v0), glm::ivec2(v1), color, fb);
-        drawLine(glm::ivec2(v1), glm::ivec2(v2), color, fb);
-        drawLine(glm::ivec2(v2), glm::ivec2(v0), color, fb);
+        const glm::vec3 v0 = model.verts[tri.v0] * 10.f + glm::vec3(0.2f, -1.f, 0.f);
+        const glm::vec3 v1 = model.verts[tri.v1] * 10.f + glm::vec3(0.2f, -1.f, 0.f);
+        const glm::vec3 v2 = model.verts[tri.v2] * 10.f + glm::vec3(0.2f, -1.f, 0.f);
+        drawLine(v0, v1, color, fb);
+        drawLine(v1, v2, color, fb);
+        drawLine(v2, v0, color, fb);
     }
 }
 
