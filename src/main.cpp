@@ -19,7 +19,7 @@ namespace {
     uint32_t OUTPUT_SCALE = 2;
     glm::uvec2 OUTPUT_RES = RES * OUTPUT_SCALE;
 
-    const glm::vec3 LIGHT_DIR(-1, -1, 1);
+    const glm::vec3 LIGHT_DIR = glm::normalize(glm::vec3(-1, -1, -1));
 
     const Color white(255, 255, 255);
     const Color red(255, 0, 0);
@@ -36,17 +36,17 @@ namespace {
             const float NoL = glm::dot(n, -LIGHT_DIR);
             const Color shade(255 * std::max(NoL, 0.f));
 
-
             const std::array<glm::vec3, 3> clipVerts = [&]() {
                 const glm::vec4 v0Clip = modelToClip * glm::vec4(v0, 1.f);
                 const glm::vec4 v1Clip = modelToClip * glm::vec4(v1, 1.f);
                 const glm::vec4 v2Clip = modelToClip * glm::vec4(v2, 1.f);
                 return std::array<glm::vec3, 3>{
-                    glm::vec3(v0Clip / v0Clip.w),
-                    glm::vec3(v1Clip / v1Clip.w),
-                    glm::vec3(v2Clip / v2Clip.w)
+                    glm::vec3(v0Clip) / v0Clip.w,
+                    glm::vec3(v1Clip) / v1Clip.w,
+                    glm::vec3(v2Clip) / v2Clip.w
                 };
             }();
+
             drawTri(clipVerts, shade, fb);
         }
     }
@@ -155,6 +155,7 @@ int main()
         // );
 
         t.reset();
+        fb.clearDepth(1.f);
         fb.clear(Color(0, 0, 0));
         float clearTime = t.getMillis();
 

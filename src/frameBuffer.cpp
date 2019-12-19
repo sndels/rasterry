@@ -1,10 +1,13 @@
 #include "frameBuffer.hpp"
 
+#include <algorithm>
+
 FrameBuffer::
     FrameBuffer(const glm::uvec2& res, const glm::uvec2& outRes) :
     _res(res),
     _outRes(outRes),
-    _pixels(_res.x * _res.y)
+    _pixels(_res.x * _res.y),
+    _depth(_res.x * _res.y)
 {
     glGenFramebuffers(1, &_fbo);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
@@ -33,8 +36,20 @@ const glm::uvec2& FrameBuffer::res() const
 {
     return _res;
 }
-void FrameBuffer::setPixel(const glm::uvec2& p, const Color& color) {
+
+float FrameBuffer::depth(const glm::ivec2& p) const
+{
+    return _depth[p.y * _res.x + p.x];
+}
+
+void FrameBuffer::setPixel(const glm::ivec2& p, const Color& color)
+{
     _pixels[p.y * _res.x + p.x] = color;
+}
+
+void FrameBuffer::setDepth(const glm::ivec2& p, float value)
+{
+    _depth[p.y * _res.x + p.x] = value;
 }
 
 void FrameBuffer::display()
@@ -53,7 +68,10 @@ void FrameBuffer::display()
 
 void FrameBuffer::clear(const Color& color)
 {
-    for (size_t i = 0; i < _res.x * _res.y; ++i) {
-        _pixels[i] = color;
-    }
+    std::fill(_pixels.begin(), _pixels.end(), color);
+}
+
+void FrameBuffer::clearDepth(float value)
+{
+    std::fill(_depth.begin(), _depth.end(), value);
 }
