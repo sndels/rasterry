@@ -1,9 +1,11 @@
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
+#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-#include "frameBuffer.hpp"
+#include "camera.hpp"
 #include "clip.hpp"
+#include "frameBuffer.hpp"
 #include "loader.hpp"
 #include "timer.hpp"
 
@@ -22,8 +24,9 @@ namespace {
     const Color white(255, 255, 255);
     const Color red(255, 0, 0);
 
-    void drawModel(const Model& model, const Color& color, FrameBuffer* fb)
+    void drawModel(const Model& model, const glm::mat4& modelToWorld, const Camera& camera, FrameBuffer* fb)
     {
+        const glm::mat4 modelToClip = camera.worldToClip() * modelToWorld;
         for (const auto& tri : model.tris) {
             const glm::vec3 v0 = model.verts[tri.v0];
             const glm::vec3 v1 = model.verts[tri.v1];
@@ -33,14 +36,18 @@ namespace {
             const float NoL = glm::dot(n, -LIGHT_DIR);
             const Color shade(255 * std::max(NoL, 0.f));
 
-            const glm::vec3 v0Clip = v0 * 10.f + glm::vec3(0.2f, -1.f, 0.f);
-            const glm::vec3 v1Clip = v1 * 10.f + glm::vec3(0.2f, -1.f, 0.f);
-            const glm::vec3 v2Clip = v2 * 10.f + glm::vec3(0.2f, -1.f, 0.f);
 
-            drawTri({v0Clip, v1Clip, v2Clip}, shade, fb);
-            drawLine(v0Clip, v1Clip, red, fb);
-            drawLine(v1Clip, v2Clip, red, fb);
-            drawLine(v2Clip, v0Clip, red, fb);
+            const std::array<glm::vec3, 3> clipVerts = [&]() {
+                const glm::vec4 v0Clip = modelToClip * glm::vec4(v0, 1.f);
+                const glm::vec4 v1Clip = modelToClip * glm::vec4(v1, 1.f);
+                const glm::vec4 v2Clip = modelToClip * glm::vec4(v2, 1.f);
+                return std::array<glm::vec3, 3>{
+                    glm::vec3(v0Clip / v0Clip.w),
+                    glm::vec3(v1Clip / v1Clip.w),
+                    glm::vec3(v2Clip / v2Clip.w)
+                };
+            }();
+            drawTri(clipVerts, shade, fb);
         }
     }
 
@@ -111,20 +118,48 @@ int main()
     // Init buffer
     FrameBuffer fb(RES, OUTPUT_RES);
 
-    // Load model
+    // Do the scene
+    Camera camera;
+    camera.lookAt(
+        glm::vec3(0.f, 0.f, -7.5f),
+        glm::vec3(0.f, 0.f, 0.f),
+        glm::vec3(0.f, 1.f, 0.f)
+    );
+    camera.perspective(glm::radians(59.f), float(RES.x) / RES.y, 0.1f, 50.f);
+
     Model model = loadOBJ(RES_DIRECTORY "obj/bunny.obj");
+    // The bunny is small, off-center and left-handed
+    const glm::mat4 modelToWorld =
+        glm::translate(
+            glm::scale(
+                glm::mat4(
+                    -1.f, 0.f,  0.f, 0.f,
+                     0.f, 1.f,  0.f, 0.f,
+                     0.f, 0.f, -1.f, 0.f,
+                     0.f, 0.f,  0.f, 1.f
+                ),
+                glm::vec3(30.f)
+            ),
+            glm::vec3(0.015f, -0.1f, 0.f)
+        );
 
     Timer t;
+    Timer gt;
     while (!glfwWindowShouldClose(windowPtr)) {
         glfwPollEvents();
 
+        // camera.lookAt(
+        //     glm::vec3(0.f, 0.f, -gt.getSeconds()),
+        //     glm::vec3(0.f, 0.f, 0.f),
+        //     glm::vec3(0.f, 1.f, 0.f)
+        // );
+
         t.reset();
-        fb.clearDepth(1.f);
         fb.clear(Color(0, 0, 0));
         float clearTime = t.getMillis();
 
         t.reset();
-        drawModel(model, white, &fb);
+        drawModel(model, modelToWorld, camera, &fb);
         float drawTime = t.getMillis();
 
         t.reset();
