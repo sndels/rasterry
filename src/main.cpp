@@ -1,8 +1,3 @@
-#ifdef _WIN32
-    #define WIN32_LEAN_AND_MEAN
-    #include <windows.h>
-#endif // _WIN32
-
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
@@ -16,37 +11,52 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-void drawModel(const Model& model, const Color& color, FrameBuffer* fb)
-{
-    for (const auto& tri : model.tris) {
-        const glm::vec3 v0 = model.verts[tri.v0] * 10.f + glm::vec3(0.2f, -1.f, 0.f);
-        const glm::vec3 v1 = model.verts[tri.v1] * 10.f + glm::vec3(0.2f, -1.f, 0.f);
-        const glm::vec3 v2 = model.verts[tri.v2] * 10.f + glm::vec3(0.2f, -1.f, 0.f);
-        drawLine(v0, v1, color, fb);
-        drawLine(v1, v2, color, fb);
-        drawLine(v2, v0, color, fb);
-    }
-}
-
 namespace {
     const static char* WINDOW_TITLE = "rasterry";
     glm::uvec2 RES(640, 480);
     uint32_t OUTPUT_SCALE = 2;
     glm::uvec2 OUTPUT_RES = RES * OUTPUT_SCALE;
-}
 
-void keyCallback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action,
-                 int32_t mods)
-{
-    (void) scancode;
-    (void) mods;
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GL_TRUE);
-}
+    const glm::vec3 LIGHT_DIR(-1, -1, 1);
 
-static void errorCallback(int error, const char* description)
-{
-    cerr << "GLFW error " << error << ": " << description << endl;
+    const Color white(255, 255, 255);
+    const Color red(255, 0, 0);
+
+    void drawModel(const Model& model, const Color& color, FrameBuffer* fb)
+    {
+        for (const auto& tri : model.tris) {
+            const glm::vec3 v0 = model.verts[tri.v0];
+            const glm::vec3 v1 = model.verts[tri.v1];
+            const glm::vec3 v2 = model.verts[tri.v2];
+
+            const glm::vec3 n = glm::normalize(glm::cross(v1 - v0, v2 - v0));
+            const float NoL = glm::dot(n, -LIGHT_DIR);
+            const Color shade(255 * std::max(NoL, 0.f));
+
+            const glm::vec3 v0Clip = v0 * 10.f + glm::vec3(0.2f, -1.f, 0.f);
+            const glm::vec3 v1Clip = v1 * 10.f + glm::vec3(0.2f, -1.f, 0.f);
+            const glm::vec3 v2Clip = v2 * 10.f + glm::vec3(0.2f, -1.f, 0.f);
+
+            drawTri({v0Clip, v1Clip, v2Clip}, shade, fb);
+            drawLine(v0Clip, v1Clip, red, fb);
+            drawLine(v1Clip, v2Clip, red, fb);
+            drawLine(v2Clip, v0Clip, red, fb);
+        }
+    }
+
+    void keyCallback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action,
+                    int32_t mods)
+    {
+        (void) scancode;
+        (void) mods;
+        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, GL_TRUE);
+    }
+
+    void errorCallback(int error, const char* description)
+    {
+        cerr << "GLFW error " << error << ": " << description << endl;
+    }
 }
 
 int main()
@@ -101,9 +111,6 @@ int main()
     // Init buffer
     FrameBuffer fb(RES, OUTPUT_RES);
 
-    const Color white(255, 255, 255);
-    const Color red(255, 0, 0);
-
     // Load model
     Model model = loadOBJ(RES_DIRECTORY "obj/bunny.obj");
 
@@ -112,6 +119,7 @@ int main()
         glfwPollEvents();
 
         t.reset();
+        fb.clearDepth(1.f);
         fb.clear(Color(0, 0, 0));
         float clearTime = t.getMillis();
 
