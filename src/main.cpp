@@ -25,6 +25,7 @@ namespace {
     const Color white(255, 255, 255);
     const Color red(255, 0, 0);
 
+    // This is basically a "vertex shader"
     void drawModel(const Model& model, const glm::mat4& modelToWorld, const Camera& camera, FrameBuffer* fb)
     {
         const glm::mat4 modelToClip = camera.worldToClip() * modelToWorld;
@@ -37,14 +38,11 @@ namespace {
             const float NoL = glm::dot(n, -LIGHT_DIR);
             const Color shade(255 * std::max(NoL, 0.f));
 
-            const std::array<glm::vec3, 3> clipVerts = [&]() {
-                const glm::vec4 v0Clip = modelToClip * glm::vec4(v0, 1.f);
-                const glm::vec4 v1Clip = modelToClip * glm::vec4(v1, 1.f);
-                const glm::vec4 v2Clip = modelToClip * glm::vec4(v2, 1.f);
-                return std::array<glm::vec3, 3>{
-                    glm::vec3(v0Clip) / v0Clip.w,
-                    glm::vec3(v1Clip) / v1Clip.w,
-                    glm::vec3(v2Clip) / v2Clip.w
+            const std::array<glm::vec4, 3> clipVerts = [&]() {
+                return std::array<glm::vec4, 3>{
+                    modelToClip * glm::vec4(v0, 1.f),
+                    modelToClip * glm::vec4(v1, 1.f),
+                    modelToClip * glm::vec4(v2, 1.f)
                 };
             }();
 

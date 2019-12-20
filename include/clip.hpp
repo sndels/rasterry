@@ -8,7 +8,7 @@
 
 #include "frameBuffer.hpp"
 
-void drawLine(const glm::vec3& p0, const glm::vec3& p1, const Color& color, FrameBuffer* fb);
-void drawTri(const std::array<glm::vec3, 3>& verts, const Color& color, FrameBuffer* fb);
+void drawLine(const glm::vec4& p0, const glm::vec4& p1, const Color& color, FrameBuffer* fb);
+void drawTri(const std::array<glm::vec4, 3>& verts, const Color& color, FrameBuffer* fb);
 
 #endif // CLIP_HPP

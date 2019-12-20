@@ -1,63 +1,55 @@
 #include "clip.hpp"
 
 namespace {
-    inline glm::ivec2 clipToRaster(const glm::vec3& clipCoord, const glm::vec2& halfRes)
+    inline glm::vec4 perspectiveDiv(const glm::vec4& clipP)
     {
-        return glm::ivec2((glm::vec2(clipCoord) + 1.f) * halfRes);
+        const float invW = 1.f / clipP.w;
+        return glm::vec4(glm::vec3(clipP) * invW, invW);
     }
 
-    inline float perpDotProd(const glm::vec2& a, const glm::vec2& b)
+    inline glm::ivec2 NDCToFrag(const glm::vec4& ndcP, const glm::vec2& halfRes)
     {
-        return a.x * b.y - a.y * b.x;
+        return glm::ivec2((glm::vec2(ndcP) + 1.f) * halfRes);
     }
 
-    // TODO: There have been more optimized _looking_ versions of this
-    //       At least many of the variables don't depend on p
-    //       Also, this expects point inside the triangle
-    //       -> Needs to be considered if used for 'hit' check
-    inline glm::vec3 barycentric(const glm::vec2& ab, const glm::vec2& ac, const glm::vec2& ap) {
-        const float bb = glm::dot(ab, ab);
-        const float bc = glm::dot(ab, ac);
-        const float cc = glm::dot(ac, ac);
-        const float pb = glm::dot(ap, ab);
-        const float pc = glm::dot(ap, ac);
-
-        const float invDenom = 1.f / (bb * cc - bc * bc);
-
-        const float v = (cc * pb - bc * pc) * invDenom;
-        const float w = (bb * pc - bc * pb) * invDenom;
-        return glm::vec3(1.f - v - w, v, w);
+    //  0 -> c is on edge a b
+    // < 0 -> c is ccw from a
+    // > 0 -> c is cw from a
+    inline float edgeFunc(const glm::vec2& a, const glm::vec2& b, const glm::vec2& c)
+    {
+        return (c.y - a.y) * (b.x - a.x) - (c.x - a.x) * (b.y - a.y);
     }
 
     template<typename T>
-    inline T baryInterp(const std::array<T, 3> v, const glm::vec3& bary)
+    inline T baryInterp(const std::array<T, 3> values, const glm::vec3& bary)
     {
-        return bary[0] * v[0] + bary[1] * v[1] + bary[2] * v[2];
+        return bary[0] * values[0] + bary[1] * values[1] + bary[2] * values[2];
     }
 
-    inline bool offscreen(const std::array<glm::vec3, 3> v) {
+    inline bool offNDC(const glm::vec4 ndcV0, const glm::vec4 ndcV1, const glm::vec4 ndcV2)
+    {
         // In front of near plane
-        if (v[0].z < 0.f && v[1].z < 0.f && v[2].z < 0.f)
+        if (ndcV0.z < 0.f && ndcV1.z < 0.f && ndcV2.z < 0.f)
             return true;
 
         // Behind far plane
-        if (v[0].z > 1.f && v[1].z > 1.f && v[2].z > 1.f)
+        if (ndcV0.z > 1.f && ndcV1.z > 1.f && ndcV2.z > 1.f)
             return true;
 
         // Off right
-        if (v[0].x > 1.f && v[1].x > 1.f && v[2].x > 1.f)
+        if (ndcV0.x > 1.f && ndcV1.x > 1.f && ndcV2.x > 1.f)
             return true;
 
         // Off left
-        if (v[0].x < -1.f && v[1].x < -1.f && v[2].x < -1.f)
+        if (ndcV0.x < -1.f && ndcV1.x < -1.f && ndcV2.x < -1.f)
             return true;
 
         // Off top
-        if (v[0].y > 1.f && v[1].y > 1.f && v[2].y > 1.f)
+        if (ndcV0.y > 1.f && ndcV1.y > 1.f && ndcV2.y > 1.f)
             return true;
 
         // Off bottom
-        if (v[0].y < -1.f && v[1].y < -1.f && v[2].y < -1.f)
+        if (ndcV0.y < -1.f && ndcV1.y < -1.f && ndcV2.y < -1.f)
             return true;
 
         return false;
@@ -65,91 +57,122 @@ namespace {
 }
 
 // Adapted from https://en.wikipedia.org/wiki/Bresenham's_line_algorithm
-void drawLine(const glm::vec3& p0, const glm::vec3& p1, const Color& color, FrameBuffer* fb)
+void drawLine(const glm::vec4& clipP0, const glm::vec4& clipP1, const Color& color, FrameBuffer* fb)
 {
+    const glm::vec4 ndcP0 = perspectiveDiv(clipP0);
+    const glm::vec4 ndcP1 = perspectiveDiv(clipP1);
+
     // TODO: Clamp lines, handle depth
 
     const glm::vec2 halfRes(fb->res() / glm::uvec2(2));
-    const glm::ivec2 p0r = clipToRaster(p0, halfRes);
-    const glm::ivec2 p1r = clipToRaster(p1, halfRes);
+    const glm::ivec2 windowP0 = NDCToFrag(ndcP0, halfRes);
+    const glm::ivec2 windowP1 = NDCToFrag(ndcP1, halfRes);
 
-    const int32_t dx = abs(p0r.x - p1r.x);
-    const int32_t sx = p0r.x < p1r.x ? 1 : -1;
-    const int32_t dy = -abs(p0r.y - p1r.y);
-    const int32_t sy = p0r.y < p1r.y ? 1 : -1;
+    const int32_t dx = abs(windowP0.x - windowP1.x);
+    const int32_t sx = windowP0.x < windowP1.x ? 1 : -1;
+    const int32_t dy = -abs(windowP0.y - windowP1.y);
+    const int32_t sy = windowP0.y < windowP1.y ? 1 : -1;
 
-    for (int32_t x = p0r.x, y = p0r.y, err = dx + dy;
-         !(x == p1r.x && y == p1r.y);) {
+    for (int32_t x = windowP0.x, y = windowP0.y, err = dx + dy;
+         !(x == windowP1.x && y == windowP1.y);) {
         fb->setPixel(glm::ivec2(x, y), color);
 
-        const int32_t e2 = 2 * err;
-        if (e2 >= dy) {
+        const int32_t windowE2 = 2 * err;
+        if (windowE2 >= dy) {
             err += dy;
             x += sx;
         }
-        if (e2 <= dx) {
+        if (windowE2 <= dx) {
             err += dx;
             y += sy;
         }
     }
 }
 
-// Base form from Mileff et.al. with fixed edge directions
-// Expects ccw winding, does backface culling
-// https://www.uni-obuda.hu/journal/Mileff_Nehez_Dudra_63.pdf
-void drawTri(const std::array<glm::vec3, 3>& verts, const Color& color, FrameBuffer* fb)
+// Expects non-divided clip coordinates, ccw winding
+// Does backface culling
+// NDC convention (clip.xyz / clip.w, 1 / clip.w)
+// Window coordinates bottom left (0,0), top right (res.x, res.y)
+void drawTri(const std::array<glm::vec4, 3>& clipVerts, const Color& color, FrameBuffer* fb)
 {
-    // Early out if whole tri is offscreen / out of clip volume
-    if (offscreen(verts))
+    const glm::vec4 ndcV0 = perspectiveDiv(clipVerts[0]);
+    const glm::vec4 ndcV1 = perspectiveDiv(clipVerts[1]);
+    const glm::vec4 ndcV2 = perspectiveDiv(clipVerts[2]);
+
+    // Early out if whole tri is out of ndc volume
+    if (offNDC(ndcV0, ndcV1, ndcV2))
         return;
 
+    // Interpolated per-fragment
+    const std::array<float, 3> ndcDepths = {
+        ndcV0.z,
+        ndcV1.z,
+        ndcV2.z
+    };
+
+    // Viewport transformation
     const glm::vec2 res(fb->res());
     const glm::vec2 halfRes(res / 2.f);
+    const glm::vec2 windowV0 = NDCToFrag(ndcV0, halfRes);
+    const glm::vec2 windowV1 = NDCToFrag(ndcV1, halfRes);
+    const glm::vec2 windowV2 = NDCToFrag(ndcV2, halfRes);
 
-    // Corners in raster space
-    const glm::vec2 a = clipToRaster(verts[0], halfRes);
-    const glm::vec2 b = clipToRaster(verts[1], halfRes);
-    const glm::vec2 c = clipToRaster(verts[2], halfRes);
+    // Used to enforce top-left rule
+    const glm::vec2 windowE0 = windowV2 - windowV1;
+    const glm::vec2 windowE1 = windowV0 - windowV2;
+    const glm::vec2 windowE2 = windowV1 - windowV0;
 
-    // Vectors from corner to corner
-    const glm::vec2 ab = b - a;
-    const glm::vec2 bc = c - b;
-    const glm::vec2 ca = a - c;
+    // (Double) tri area for barycentric coordinates
+    const float area = edgeFunc(windowV0, windowV1, windowV2);
 
     // Viewport clipped bounding box -> [min, max)
     const glm::vec2 vMin = glm::max(
-        glm::min(a, glm::min(b, c)),
+        glm::min(windowV0, glm::min(windowV1, windowV2)),
         glm::vec2(0)
     );
     const glm::vec2 vMax = glm::min(
-        glm::max(a, glm::max(b, c)),
+        glm::max(windowV0, glm::max(windowV1, windowV2)),
         res
     );
 
+    // Check and draw all fragments inside bounding box
     for (uint32_t x = vMin.x; x < std::ceil(vMax.x); ++x) {
         for (uint32_t y = vMin.y; y < std::ceil(vMax.y); ++y) {
-            // Do the half-space check
-            // pdp = 0 -> parallel
-            // pdp > 0 -> b is ccw from a
-            // pdp < 0 -> b is cw from a
-            // TODO: Are barycentric coordinates upfront faster (once they are optimized)?
-            const glm::vec2 p = glm::vec2(x, y) + 0.5f;
-            const float c0 = perpDotProd(ab, p - a);
-            const float c1 = perpDotProd(bc, p - b);
-            const float c2 = perpDotProd(ca, p - c);
+            // Use pixel center as usual
+            const glm::vec2 windowP = glm::vec2(x, y) + 0.5f;
+            const glm::vec3 w(
+                edgeFunc(windowV1, windowV2, windowP),
+                edgeFunc(windowV2, windowV0, windowP),
+                edgeFunc(windowV0, windowV1, windowP)
+            );
 
-            if (c0 >= 0.f && c1 >= 0.f && c2 >= 0.f) {
-                const glm::vec2 ac = -ca;
-                const glm::vec2 ap = p - a;
+            // Half-space check with top-left rule
+            bool overlaps = true;
+            overlaps &= w.x == 0 ? ((windowE0.y == 0 && windowE0.x > 0) || windowE0.y > 0) : (w.x > 0);
+            overlaps &= w.y == 0 ? ((windowE1.y == 0 && windowE1.x > 0) || windowE1.y > 0) : (w.y > 0);
+            overlaps &= w.z == 0 ? ((windowE2.y == 0 && windowE2.x > 0) || windowE2.y > 0) : (w.z > 0);
 
-                const glm::vec3 bary = barycentric(ab, ac, ap);
+            if (overlaps) {
+                // All attributes are interpolated with perspective corrected barys
+                const glm::vec3 windowBary(w.x / area, w.y / area, w.z / area);
+                const glm::vec3 correctedBary = [&](){
+                    const glm::vec3 bary(
+                        windowBary.x * ndcV0.w,
+                        windowBary.y * ndcV1.w,
+                        windowBary.z * ndcV2.w
+                    );
+                    return bary / (bary.x + bary.y + bary.z);
+                }();
 
-                const std::array<float, 3> depths = {verts[0].z, verts[1].z, verts[2].z};
-                const float depth = baryInterp(depths, bary);
+                // TODO: Is depth interpolation with window space coordinates correct?
+                //       GL4.4 spec defined it as such in polygon rasterization,
+                //       which comes after vertex processing so polys should
+                //       already be perspective divided (and viewport transformed)
+                const float depth = baryInterp(ndcDepths, windowBary);
 
-                if (depth < fb->depth(p)) {
-                    fb->setPixel(glm::ivec2(p), color);
-                    fb->setDepth(glm::ivec2(p), depth);
+                if (depth < fb->depth(windowP)) {
+                    fb->setPixel(glm::ivec2(windowP), color);
+                    fb->setDepth(glm::ivec2(windowP), depth);
                 }
             }
         }
