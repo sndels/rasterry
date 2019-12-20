@@ -1,6 +1,7 @@
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/component_wise.hpp>
 #include <iostream>
 
 #include "camera.hpp"
@@ -128,7 +129,9 @@ int main()
     camera.perspective(glm::radians(59.f), float(RES.x) / RES.y, 0.1f, 50.f);
 
     Model model = loadOBJ(RES_DIRECTORY "obj/bunny.obj");
-    // The bunny is small, off-center and left-handed
+    // Scale and center model
+    const float size = glm::compMax(model.max - model.min);
+    const glm::vec3 offset = -(model.min + (model.max - model.min) / 2.f);
     const glm::mat4 modelToWorld =
         glm::translate(
             glm::scale(
@@ -138,9 +141,9 @@ int main()
                      0.f, 0.f, -1.f, 0.f,
                      0.f, 0.f,  0.f, 1.f
                 ),
-                glm::vec3(30.f)
+                glm::vec3(5.f / size) // magic scale for default camera position
             ),
-            glm::vec3(0.015f, -0.1f, 0.f)
+            offset
         );
 
     Timer t;
