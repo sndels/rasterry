@@ -72,16 +72,13 @@ void drawLine(const glm::vec4& clipP0, const glm::vec4& clipP1, const Color& col
     }
 }
 
-// Expects non-divided clip coordinates, ccw winding
-// Does backface culling
-// NDC convention (clip.xyz / clip.w, 1 / clip.w)
-// Window coordinates bottom left (0,0), top right (res.x, res.y)
 void drawTri(const std::array<glm::vec4, 3>& clipVerts, const Color& color, FrameBuffer* fb)
 {
     // Rough clipping
     if (outsideClip(clipVerts[0]) && outsideClip(clipVerts[1]) && outsideClip(clipVerts[2]))
         return;
 
+    // NDC convention (clip.xyz / clip.w, 1 / clip.w)
     const glm::vec4 ndcV0 = perspectiveDiv(clipVerts[0]);
     const glm::vec4 ndcV1 = perspectiveDiv(clipVerts[1]);
     const glm::vec4 ndcV2 = perspectiveDiv(clipVerts[2]);
@@ -94,6 +91,7 @@ void drawTri(const std::array<glm::vec4, 3>& clipVerts, const Color& color, Fram
     };
 
     // Viewport transformation
+    // Window coordinates bottom-left (0,0), top-right (res.x, res.y)
     const glm::vec2 res(fb->res());
     const glm::vec2 halfRes(res / 2.f);
     const glm::vec2 windowV0 = NDCToFrag(ndcV0, halfRes);
