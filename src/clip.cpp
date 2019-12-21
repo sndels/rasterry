@@ -26,30 +26,13 @@ namespace {
         return bary[0] * values[0] + bary[1] * values[1] + bary[2] * values[2];
     }
 
-    inline bool offNDC(const glm::vec4 ndcV0, const glm::vec4 ndcV1, const glm::vec4 ndcV2)
+    inline bool outsideClip(const glm::vec4& clipP)
     {
-        // In front of near plane
-        if (ndcV0.z < 0.f && ndcV1.z < 0.f && ndcV2.z < 0.f)
+        if (clipP.x < -clipP.w || clipP.x > clipP.w)
             return true;
-
-        // Behind far plane
-        if (ndcV0.z > 1.f && ndcV1.z > 1.f && ndcV2.z > 1.f)
+        if (clipP.y < -clipP.w || clipP.y > clipP.w)
             return true;
-
-        // Off right
-        if (ndcV0.x > 1.f && ndcV1.x > 1.f && ndcV2.x > 1.f)
-            return true;
-
-        // Off left
-        if (ndcV0.x < -1.f && ndcV1.x < -1.f && ndcV2.x < -1.f)
-            return true;
-
-        // Off top
-        if (ndcV0.y > 1.f && ndcV1.y > 1.f && ndcV2.y > 1.f)
-            return true;
-
-        // Off bottom
-        if (ndcV0.y < -1.f && ndcV1.y < -1.f && ndcV2.y < -1.f)
+        if (clipP.z < -clipP.w || clipP.z > clipP.w)
             return true;
 
         return false;
@@ -95,13 +78,13 @@ void drawLine(const glm::vec4& clipP0, const glm::vec4& clipP1, const Color& col
 // Window coordinates bottom left (0,0), top right (res.x, res.y)
 void drawTri(const std::array<glm::vec4, 3>& clipVerts, const Color& color, FrameBuffer* fb)
 {
+    // Rough clipping
+    if (outsideClip(clipVerts[0]) && outsideClip(clipVerts[1]) && outsideClip(clipVerts[2]))
+        return;
+
     const glm::vec4 ndcV0 = perspectiveDiv(clipVerts[0]);
     const glm::vec4 ndcV1 = perspectiveDiv(clipVerts[1]);
     const glm::vec4 ndcV2 = perspectiveDiv(clipVerts[2]);
-
-    // Early out if whole tri is out of ndc volume
-    if (offNDC(ndcV0, ndcV1, ndcV2))
-        return;
 
     // Interpolated per-fragment
     const std::array<float, 3> ndcDepths = {
@@ -164,10 +147,7 @@ void drawTri(const std::array<glm::vec4, 3>& clipVerts, const Color& color, Fram
                     return bary / (bary.x + bary.y + bary.z);
                 }();
 
-                // TODO: Is depth interpolation with window space coordinates correct?
-                //       GL4.4 spec defined it as such in polygon rasterization,
-                //       which comes after vertex processing so polys should
-                //       already be perspective divided (and viewport transformed)
+                // This makes depth non-linear, though it matches what OpenGL does
                 const float depth = baryInterp(ndcDepths, windowBary);
 
                 if (depth < fb->depth(windowP)) {
