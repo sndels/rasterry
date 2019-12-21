@@ -1,0 +1,15 @@
+set(RASTERRY_INCLUDE_DIR
+    ${CMAKE_CURRENT_LIST_DIR}
+    PARENT_SCOPE
+)
+
+set(RASTERRY_HEADERS
+    ${CMAKE_CURRENT_LIST_DIR}/camera.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/clip.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/color.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/frameBuffer.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/loader.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/model.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/timer.hpp
+    PARENT_SCOPE
+)

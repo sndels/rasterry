@@ -1,0 +1,9 @@
+set(RASTERRY_SOURCES
+    ${CMAKE_CURRENT_LIST_DIR}/camera.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/clip.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/frameBuffer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/loader.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/main.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/timer.cpp
+    PARENT_SCOPE
+)

@@ -14,10 +14,9 @@ endif()
 
 find_package(OpenGL REQUIRED)
 
-file(GLOB_RECURSE SOURCES src/*.cpp)
-file(GLOB_RECURSE HEADERS include/*.hpp)
-
 add_subdirectory(ext)
+add_subdirectory(include)
+add_subdirectory(src)
 
 include_directories(include ext/libgl3w/include ext/glfw/include)
 
@@ -25,8 +24,13 @@ include_directories(include ext/libgl3w/include ext/glfw/include)
 add_definitions(-DRES_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/")
 
 add_executable(rasterry
-    ${SOURCES}
-    ${HEADERS}
+    ${RASTERRY_SOURCES}
+    ${RASTERRY_HEADERS}
+)
+
+target_include_directories(rasterry
+    PRIVATE
+    ${RASTERRY_INCLUDE_DIR}
 )
 
 target_link_libraries(rasterry
