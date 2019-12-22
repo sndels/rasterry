@@ -126,7 +126,7 @@ int main()
     );
     camera.perspective(glm::radians(59.f), float(RES.x) / RES.y, 0.1f, 50.f);
 
-    Model model = loadOBJ(RES_DIRECTORY "obj/bunny.obj");
+    Model model = loadOBJ(RES_DIRECTORY "res/bunny.obj");
     // Scale and center model
     const float size = glm::compMax(model.max - model.min);
     const glm::vec3 offset = -(model.min + (model.max - model.min) / 2.f);
