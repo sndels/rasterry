@@ -5,5 +5,6 @@ set(RASTERRY_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/loader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/main.cpp
     ${CMAKE_CURRENT_LIST_DIR}/timer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/tinyglTFImplementation.cpp
     PARENT_SCOPE
 )
