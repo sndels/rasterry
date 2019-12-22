@@ -39,4 +39,5 @@ target_link_libraries(rasterry
     glfw
     glm
     libgl3w
+    tinygltf
 )

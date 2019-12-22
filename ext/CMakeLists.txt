@@ -8,3 +8,7 @@ add_subdirectory(glfw)
 add_library(glm INTERFACE)
 # Define as system to suppress warnings
 target_include_directories(glm SYSTEM INTERFACE ${CMAKE_CURRENT_LIST_DIR}/glm)
+
+# tinygltf is header only
+add_library(tinygltf INTERFACE)
+target_include_directories(tinygltf INTERFACE ${CMAKE_CURRENT_LIST_DIR}/tinygltf)
