@@ -11,6 +11,23 @@ Texture::Texture(const tinygltf::Image& image) :
         throw std::runtime_error("Texture with bad components");
 }
 
+Texture::Texture(const Texture&& other) :
+    _res(other._res),
+    _component(other._component),
+    _pixels(other._pixels)
+{ }
+
+Texture& Texture::operator=(const Texture&& other)
+{
+    if (this != &other) {
+        Texture texture;
+        texture._res = other._res;
+        texture._component = other._component;
+        texture._pixels = other._pixels;
+    }
+    return *this;
+}
+
 Color Texture::sample(const glm::vec2& uv) const
 {
     const glm::uvec2 coord = pixelCoord(uv);

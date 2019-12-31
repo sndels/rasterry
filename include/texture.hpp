@@ -9,10 +9,13 @@
 class Texture
 {
 public:
+    Texture() = default;
     Texture(const tinygltf::Image& image);
 
     Texture(const Texture&) = delete;
+    Texture(const Texture&& other);
     Texture& operator=(const Texture&) = delete;
+    Texture& operator=(const Texture&& other);
 
     // Nearest sampling
     Color sample(const glm::vec2& uv) const;
@@ -20,8 +23,8 @@ public:
 private:
     glm::uvec2 pixelCoord(const glm::vec2& uv) const;
 
-    glm::ivec2 _res;
-    int _component;
+    glm::ivec2 _res = glm::ivec2(0,0);
+    int _component = 0;
     std::vector<uint8_t> _pixels;
 };
 
