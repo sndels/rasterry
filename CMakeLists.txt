@@ -28,6 +28,11 @@ add_executable(rasterry
     ${RASTERRY_HEADERS}
 )
 
+target_compile_features(rasterry
+    PRIVATE
+    cxx_std_17
+)
+
 target_include_directories(rasterry
     PRIVATE
     ${RASTERRY_INCLUDE_DIR}
