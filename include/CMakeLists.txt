@@ -13,5 +13,6 @@ set(RASTERRY_HEADERS
     ${CMAKE_CURRENT_LIST_DIR}/mesh.hpp
     ${CMAKE_CURRENT_LIST_DIR}/texture.hpp
     ${CMAKE_CURRENT_LIST_DIR}/timer.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/world.hpp
     PARENT_SCOPE
 )
