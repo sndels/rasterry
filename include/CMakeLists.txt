@@ -10,6 +10,7 @@ set(RASTERRY_HEADERS
     ${CMAKE_CURRENT_LIST_DIR}/frameBuffer.hpp
     ${CMAKE_CURRENT_LIST_DIR}/loader.hpp
     ${CMAKE_CURRENT_LIST_DIR}/model.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/texture.hpp
     ${CMAKE_CURRENT_LIST_DIR}/timer.hpp
     PARENT_SCOPE
 )
