@@ -26,27 +26,29 @@ namespace {
     const Color red(255, 0, 0);
 
     // This is basically a "vertex shader"
-    void drawModel(const Model& model, const glm::mat4& modelToWorld, const Camera& camera, FrameBuffer* fb)
+    void drawMesh(const Mesh& mesh, const glm::mat4& modelToWorld, const Camera& camera, FrameBuffer* fb)
     {
         const glm::mat4 modelToClip = camera.worldToClip() * modelToWorld;
-        for (const auto& tri : model.tris) {
-            const glm::vec3 v0 = model.verts[tri.v0];
-            const glm::vec3 v1 = model.verts[tri.v1];
-            const glm::vec3 v2 = model.verts[tri.v2];
+        for (const auto& primitive : mesh.primitives) {
+            for (const auto& tri : primitive.tris) {
+                const glm::vec3 v0 = primitive.verts[tri.v0].pos;
+                const glm::vec3 v1 = primitive.verts[tri.v1].pos;
+                const glm::vec3 v2 = primitive.verts[tri.v2].pos;
 
-            const glm::vec3 n = glm::normalize(glm::cross(v1 - v0, v2 - v0));
-            const float NoL = glm::dot(n, -LIGHT_DIR);
-            const Color shade(255 * std::max(NoL, 0.f));
+                const glm::vec3 n = glm::normalize(glm::cross(v1 - v0, v2 - v0));
+                const float NoL = glm::dot(n, -LIGHT_DIR);
+                const Color shade(255 * std::max(NoL, 0.f));
 
-            const std::array<glm::vec4, 3> clipVerts = [&]() {
-                return std::array<glm::vec4, 3>{
-                    modelToClip * glm::vec4(v0, 1.f),
-                    modelToClip * glm::vec4(v1, 1.f),
-                    modelToClip * glm::vec4(v2, 1.f)
-                };
-            }();
+                const std::array<glm::vec4, 3> clipVerts = [&]() {
+                    return std::array<glm::vec4, 3>{
+                        modelToClip * glm::vec4(v0, 1.f),
+                        modelToClip * glm::vec4(v1, 1.f),
+                        modelToClip * glm::vec4(v2, 1.f)
+                    };
+                }();
 
-            drawTri(clipVerts, shade, fb);
+                drawTri(clipVerts, shade, fb);
+            }
         }
     }
 
@@ -126,10 +128,10 @@ int main()
     );
     camera.perspective(glm::radians(59.f), float(RES.x) / RES.y, 0.1f, 50.f);
 
-    Model model = loadOBJ(RES_DIRECTORY "res/bunny.obj");
-    // Scale and center model
-    const float size = glm::compMax(model.max - model.min);
-    const glm::vec3 offset = -(model.min + (model.max - model.min) / 2.f);
+    Mesh mesh = loadOBJ(RES_DIRECTORY "res/bunny.obj");
+    // Scale and center mesh
+    const float size = glm::compMax(mesh.max - mesh.min);
+    const glm::vec3 offset = -(mesh.min + (mesh.max - mesh.min) / 2.f);
     const glm::mat4 modelToWorld =
         glm::translate(
             glm::scale(
@@ -161,7 +163,7 @@ int main()
         float clearTime = t.getMillis();
 
         t.reset();
-        drawModel(model, modelToWorld, camera, &fb);
+        drawMesh(mesh, modelToWorld, camera, &fb);
         float drawTime = t.getMillis();
 
         t.reset();

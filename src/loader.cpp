@@ -4,14 +4,16 @@
 #include <limits>
 #include <sstream>
 
-void throwLineError(const std::string& error, size_t lineNum)
-{
-    char err[80];
-    snprintf(err, 80, "%s on line %zu", error.c_str(), lineNum);
-    throw std::runtime_error(std::string(err));
+namespace {
+    void throwLineError(const std::string& error, size_t lineNum)
+    {
+        char err[80];
+        snprintf(err, 80, "%s on line %zu", error.c_str(), lineNum);
+        throw std::runtime_error(std::string(err));
+    }
 }
 
-Model loadOBJ(const std::string& path)
+Mesh loadOBJ(const std::string& path)
 {
     fprintf(stderr, "Parsing obj %s\n", path.c_str());
 
@@ -24,9 +26,9 @@ Model loadOBJ(const std::string& path)
     objStream << objFile.rdbuf();
     std::string objString = objStream.str();
 
-    Model model;
-    model.min = glm::vec3(std::numeric_limits<float>::max());
-    model.max = glm::vec3(std::numeric_limits<float>::min());
+    Primitive primitive;
+    primitive.min = glm::vec3(std::numeric_limits<float>::max());
+    primitive.max = glm::vec3(std::numeric_limits<float>::min());
     size_t lineNum = 1;
     const char* buffer = objString.c_str();
     while (*buffer) {
@@ -51,9 +53,12 @@ Model loadOBJ(const std::string& path)
             if (sscanf(buffer, "%f %f %f %f", &v.x, &v.y, &v.z, &v.w) < 3)
                 throwLineError("Invalid vertex", lineNum);
             glm::vec3 v3(glm::vec3(v) / v.w);
-            model.min = glm::min(model.min, v3);
-            model.max = glm::max(model.max, v3);
-            model.verts.emplace_back(v3);
+            primitive.min = glm::min(primitive.min, v3);
+            primitive.max = glm::max(primitive.max, v3);
+            // TODO: Parse from buffers once normals etc. are supported
+            Vertex vertex;
+            vertex.pos = v3;
+            primitive.verts.emplace_back(std::move(vertex));
         } else if (strcmp(linetype, "f") == 0) {
             TriIndices tis;
             // TODO: Mixed indices
@@ -63,7 +68,7 @@ Model loadOBJ(const std::string& path)
             tis.v0--;
             tis.v1--;
             tis.v2--;
-            model.tris.push_back(std::move(tis));
+            primitive.tris.push_back(std::move(tis));
         }
 
         // Seek to the end of the line
@@ -74,12 +79,12 @@ Model loadOBJ(const std::string& path)
         lineNum++;
     }
 
-    printf("%zu verts and %zu tris\n", model.verts.size(), model.tris.size());
+    printf("%zu verts and %zu tris\n", primitive.verts.size(), primitive.tris.size());
     printf(
         "min (%.2f, %.2f, %.2f) max (%.2f, %.2f, %.2f)\n",
-        model.min.x, model.min.y, model.min.z,
-        model.max.x, model.max.y, model.max.z
+        primitive.min.x, primitive.min.y, primitive.min.z,
+        primitive.max.x, primitive.max.y, primitive.max.z
     );
 
-    return model;
+    return {primitive.min, primitive.max, {primitive}};
 }

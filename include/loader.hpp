@@ -3,8 +3,8 @@
 
 #include <string>
 
-#include "model.hpp"
+#include "mesh.hpp"
 
-Model loadOBJ(const std::string& path);
+Mesh loadOBJ(const std::string& path);
 
 #endif // LOADER_HPP
