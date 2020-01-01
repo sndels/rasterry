@@ -2,6 +2,9 @@
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/component_wise.hpp>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 #include <iostream>
 #include <unordered_set>
 
@@ -148,6 +151,16 @@ int main()
     // Set glfw-callbacks, these will pass to imgui's callbacks if overridden
     glfwSetKeyCallback(windowPtr, keyCallback);
 
+    // Init imgui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui_ImplGlfw_InitForOpenGL(windowPtr, true);
+    ImGui_ImplOpenGL3_Init("#version 410");
+
+    ImGuiWindowFlags mainWindowFlags =
+        ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoResize;
+
     // Init buffer
     FrameBuffer fb(RES, OUTPUT_RES);
 
@@ -185,12 +198,18 @@ int main()
     while (!glfwWindowShouldClose(windowPtr)) {
         glfwPollEvents();
 
+        // Init imgui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
         // camera.lookAt(
         //     glm::vec3(0.f, 0.f, -gt.getSeconds()),
         //     glm::vec3(0.f, 0.f, 0.f),
         //     glm::vec3(0.f, 1.f, 0.f)
         // );
 
+        // Setup frame buffer
         t.reset();
         fb.clearDepth(1.f);
         fb.clear(Color(0, 0, 0));
@@ -203,16 +222,34 @@ int main()
 
         t.reset();
         fb.display();
-        glfwSwapBuffers(windowPtr);
-        float swapTime = t.getMillis();
+        float displayTime = t.getMillis();
 
-        printf(
-            "\rclear %.2fms draw %.2fms swap %.2fms          ",
-            clearTime, drawTime, swapTime
-        );
+        // Draw profiler
+        {
+            ImGui::Begin("MainWindow", nullptr, mainWindowFlags);
+
+            ImGui::Text(
+                "clear %.2fms draw %.2fms display %.2fms",
+                clearTime, drawTime, displayTime
+            );
+            ImGui::Text("avg frame %.2fms", 1000.f / ImGui::GetIO().Framerate);
+
+            ImGui::End();
+        }
+
+        // Render imgui
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        glfwSwapBuffers(windowPtr);
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     glfwDestroyWindow(windowPtr);
     glfwTerminate();
+
     exit(EXIT_SUCCESS);
 }

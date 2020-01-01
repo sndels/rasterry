@@ -43,6 +43,7 @@ target_link_libraries(rasterry
     ${OPENGL_LIBRARIES}
     glfw
     glm
+    imgui
     libgl3w
     tinygltf
 )
