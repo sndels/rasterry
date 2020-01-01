@@ -47,6 +47,11 @@ void Camera::perspective(const float fov, const float ar, const float zN, const 
     _worldToClip = _cameraToClip * _worldToCamera;
 }
 
+const glm::vec3& Camera::eye() const
+{
+    return _eye;
+}
+
 const glm::mat4& Camera::worldToCamera() const
 {
     return _worldToCamera;

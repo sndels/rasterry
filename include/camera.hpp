@@ -11,6 +11,7 @@ public:
     void orient(const glm::vec3& eye, const glm::vec3& fwd, const glm::vec3& up);
     void perspective(const float fov, const float ar, const float zN, const float zF);
 
+    const glm::vec3& eye() const;
     const glm::mat4& worldToCamera() const;
     const glm::mat4& cameraToClip() const;
     const glm::mat4& worldToClip() const;
