@@ -11,7 +11,6 @@
 void drawLine(const glm::vec4& p0, const glm::vec4& p1, const Color& color, FrameBuffer* fb);
 
 // Expects non-divided clip coordinates, ccw winding
-// Does backface culling
 // Returns false if whole triangle was clipped
 bool drawTri(const std::array<glm::vec4, 3>& clipVerts, const Color& color, FrameBuffer* fb);
 

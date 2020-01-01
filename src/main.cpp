@@ -29,9 +29,10 @@ namespace {
     const Color white(255, 255, 255);
     const Color red(255, 0, 0);
 
-    size_t drawMesh(const Mesh& mesh, const glm::mat4& modelToWorld, const Camera& camera, FrameBuffer* fb)
+    std::tuple<size_t, size_t> drawMesh(const Mesh& mesh, const glm::mat4& modelToWorld, const Camera& camera, FrameBuffer* fb)
     {
         size_t drawnTris = 0;
+        size_t culledTris = 0;
 
         for (const auto& primitive : mesh.primitives) {
             // This is basically a "vertex shader"
@@ -44,6 +45,15 @@ namespace {
                     glm::vec3(p1World - p0World),
                     glm::vec3(p2World - p0World)
                 ));
+
+                // Do back-face culling
+                const glm::vec3 v = glm::normalize(camera.eye() - glm::vec3(p0World));
+                const float NoV = glm::dot(n, v);
+                if (NoV <= 0) {
+                    culledTris++;
+                    continue;
+                }
+
                 const float NoL = glm::dot(n, -LIGHT_DIR);
                 const Color shade(255 * NoL);
 
@@ -59,12 +69,13 @@ namespace {
             }
         }
 
-        return drawnTris;
+        return std::make_pair(drawnTris, culledTris);
     }
 
-    size_t drawWorld(const World& world, const Camera& camera, FrameBuffer *fb)
+    std::tuple<size_t, size_t> drawWorld(const World& world, const Camera& camera, FrameBuffer *fb)
     {
         size_t drawnTris = 0;
+        size_t culledTris = 0;
 
         // Go through scene graph using DFS while keeping track of stacked transform
         std::vector<glm::mat4> parentTransforms({ glm::mat4(1.f) });
@@ -85,14 +96,17 @@ namespace {
                     glm::mat4_cast(node->rotation) *
                     glm::scale(glm::mat4(1.f), node->scale);
 
-                if (node->mesh != nullptr)
-                    drawnTris += drawMesh(*node->mesh, transform, camera, fb);
+                if (node->mesh != nullptr) {
+                    const auto [drawn, culled] = drawMesh(*node->mesh, transform, camera, fb);
+                    drawnTris += drawn;
+                    culledTris += culled;
+                }
 
                 parentTransforms.push_back(std::move(transform));
             }
         }
 
-        return drawnTris;
+        return std::make_pair(drawnTris, culledTris);
     }
 
     void keyCallback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action,
@@ -224,8 +238,8 @@ int main()
         float clearTime = t.getMillis();
 
         t.reset();
-        // const size_t drawnTris = drawMesh(bunny, bunnyToWorld, camera, &fb);
-        const size_t drawnTris = drawWorld(world, camera, &fb);
+        // const auto [drawnTris, culledTris] = drawMesh(bunny, bunnyToWorld, camera, &fb);
+        const auto [drawnTris, culledTris] = drawWorld(world, camera, &fb);
         float drawTime = t.getMillis();
 
         t.reset();
@@ -239,7 +253,10 @@ int main()
 
             ImGui::Begin("MainWindow", nullptr, mainWindowFlags);
 
-            ImGui::Text("%zu triangles", drawnTris);
+            ImGui::Text(
+                "%zu triangles (%zu drawn %zu culled)",
+                drawnTris + culledTris, drawnTris, culledTris
+            );
             ImGui::Text(
                 "clear %.2fms draw %.2fms display %.2fms",
                 clearTime, drawTime, displayTime
