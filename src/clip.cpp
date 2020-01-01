@@ -72,11 +72,11 @@ void drawLine(const glm::vec4& clipP0, const glm::vec4& clipP1, const Color& col
     }
 }
 
-void drawTri(const std::array<glm::vec4, 3>& clipVerts, const Color& color, FrameBuffer* fb)
+bool drawTri(const std::array<glm::vec4, 3>& clipVerts, const Color& color, FrameBuffer* fb)
 {
     // Rough clipping
     if (outsideClip(clipVerts[0]) && outsideClip(clipVerts[1]) && outsideClip(clipVerts[2]))
-        return;
+        return false;
 
     // NDC convention (clip.xyz / clip.w, 1 / clip.w)
     const glm::vec4 ndcV0 = perspectiveDiv(clipVerts[0]);
@@ -155,4 +155,6 @@ void drawTri(const std::array<glm::vec4, 3>& clipVerts, const Color& color, Fram
             }
         }
     }
+
+    return true;
 }

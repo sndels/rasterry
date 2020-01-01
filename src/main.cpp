@@ -29,8 +29,10 @@ namespace {
     const Color white(255, 255, 255);
     const Color red(255, 0, 0);
 
-    void drawMesh(const Mesh& mesh, const glm::mat4& modelToWorld, const Camera& camera, FrameBuffer* fb)
+    size_t drawMesh(const Mesh& mesh, const glm::mat4& modelToWorld, const Camera& camera, FrameBuffer* fb)
     {
+        size_t drawnTris = 0;
+
         for (const auto& primitive : mesh.primitives) {
             // This is basically a "vertex shader"
             for (const auto& tri : primitive.tris) {
@@ -53,13 +55,17 @@ namespace {
                     };
                 }();
 
-                drawTri(clipVerts, shade, fb);
+                drawnTris += drawTri(clipVerts, shade, fb);
             }
         }
+
+        return drawnTris;
     }
 
-    void drawWorld(const World& world, const Camera& camera, FrameBuffer *fb)
+    size_t drawWorld(const World& world, const Camera& camera, FrameBuffer *fb)
     {
+        size_t drawnTris = 0;
+
         // Go through scene graph using DFS while keeping track of stacked transform
         std::vector<glm::mat4> parentTransforms({ glm::mat4(1.f) });
         std::unordered_set<Scene::Node*> visited;
@@ -80,11 +86,13 @@ namespace {
                     glm::scale(glm::mat4(1.f), node->scale);
 
                 if (node->mesh != nullptr)
-                    drawMesh(*node->mesh, transform, camera, fb);
+                    drawnTris += drawMesh(*node->mesh, transform, camera, fb);
 
                 parentTransforms.push_back(std::move(transform));
             }
         }
+
+        return drawnTris;
     }
 
     void keyCallback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action,
@@ -216,8 +224,8 @@ int main()
         float clearTime = t.getMillis();
 
         t.reset();
-        // drawMesh(bunny, bunnyToWorld, camera, &fb);
-        drawWorld(world, camera, &fb);
+        // const size_t drawnTris = drawMesh(bunny, bunnyToWorld, camera, &fb);
+        const size_t drawnTris = drawWorld(world, camera, &fb);
         float drawTime = t.getMillis();
 
         t.reset();
@@ -226,8 +234,12 @@ int main()
 
         // Draw profiler
         {
+            ImGui::SetNextWindowPos(ImVec2(48, 48), ImGuiCond_Once);
+            ImGui::SetNextWindowSize(ImVec2(300, 64), ImGuiCond_Once);
+
             ImGui::Begin("MainWindow", nullptr, mainWindowFlags);
 
+            ImGui::Text("%zu triangles", drawnTris);
             ImGui::Text(
                 "clear %.2fms draw %.2fms display %.2fms",
                 clearTime, drawTime, displayTime
