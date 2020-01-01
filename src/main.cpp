@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <iostream>
+#include <unordered_set>
 
 #include "camera.hpp"
 #include "clip.hpp"
@@ -20,34 +21,65 @@ namespace {
     uint32_t OUTPUT_SCALE = 2;
     glm::uvec2 OUTPUT_RES = RES * OUTPUT_SCALE;
 
-    const glm::vec3 LIGHT_DIR = glm::normalize(glm::vec3(-1, -1, -1));
+    const glm::vec3 LIGHT_DIR = glm::normalize(glm::vec3(-1.f, -1.f, -2.f));
 
     const Color white(255, 255, 255);
     const Color red(255, 0, 0);
 
-    // This is basically a "vertex shader"
     void drawMesh(const Mesh& mesh, const glm::mat4& modelToWorld, const Camera& camera, FrameBuffer* fb)
     {
-        const glm::mat4 modelToClip = camera.worldToClip() * modelToWorld;
         for (const auto& primitive : mesh.primitives) {
+            // This is basically a "vertex shader"
             for (const auto& tri : primitive.tris) {
-                const glm::vec3 v0 = primitive.verts[tri.v0].pos;
-                const glm::vec3 v1 = primitive.verts[tri.v1].pos;
-                const glm::vec3 v2 = primitive.verts[tri.v2].pos;
+                const glm::vec4 p0World = modelToWorld * glm::vec4(primitive.positions[tri.v0], 1.f);
+                const glm::vec4 p1World = modelToWorld * glm::vec4(primitive.positions[tri.v1], 1.f);
+                const glm::vec4 p2World = modelToWorld * glm::vec4(primitive.positions[tri.v2], 1.f);
 
-                const glm::vec3 n = glm::normalize(glm::cross(v1 - v0, v2 - v0));
+                const glm::vec3 n = glm::normalize(glm::cross(
+                    glm::vec3(p1World - p0World),
+                    glm::vec3(p2World - p0World)
+                ));
                 const float NoL = glm::dot(n, -LIGHT_DIR);
-                const Color shade(255 * std::max(NoL, 0.f));
+                const Color shade(255 * NoL);
 
-                const std::array<glm::vec4, 3> clipVerts = [&]() {
+                const std::array<glm::vec4, 3> clipVerts = [&](){
                     return std::array<glm::vec4, 3>{
-                        modelToClip * glm::vec4(v0, 1.f),
-                        modelToClip * glm::vec4(v1, 1.f),
-                        modelToClip * glm::vec4(v2, 1.f)
+                        camera.worldToClip() * p0World,
+                        camera.worldToClip() * p1World,
+                        camera.worldToClip() * p2World
                     };
                 }();
 
                 drawTri(clipVerts, shade, fb);
+            }
+        }
+    }
+
+    void drawWorld(const World& world, const Camera& camera, FrameBuffer *fb)
+    {
+        // Go through scene graph using DFS while keeping track of stacked transform
+        std::vector<glm::mat4> parentTransforms({ glm::mat4(1.f) });
+        std::unordered_set<Scene::Node*> visited;
+        std::vector<Scene::Node*> nodeStack = world.scenes[world.currentScene].nodes;
+        while (!nodeStack.empty()) {
+            const auto node = nodeStack.back();
+            if (visited.find(node) != visited.end()) {
+                nodeStack.pop_back();
+                parentTransforms.pop_back();
+            } else {
+                visited.emplace(node);
+                nodeStack.insert(nodeStack.end(), node->children.begin(), node->children.end());
+
+                const glm::mat4 transform =
+                    parentTransforms.back() *
+                    glm::translate(glm::mat4(1.f), node->translation) *
+                    glm::mat4_cast(node->rotation) *
+                    glm::scale(glm::mat4(1.f), node->scale);
+
+                if (node->mesh != nullptr)
+                    drawMesh(*node->mesh, transform, camera, fb);
+
+                parentTransforms.push_back(std::move(transform));
             }
         }
     }
@@ -122,17 +154,19 @@ int main()
     // Do the scene
     Camera camera;
     camera.lookAt(
-        glm::vec3(0.f, 0.f, -7.5f),
-        glm::vec3(0.f, 0.f, 0.f),
+        glm::vec3(0.f, 50.f, 100.f),
+        glm::vec3(0.f, 25.f, 0.f),
         glm::vec3(0.f, 1.f, 0.f)
     );
-    camera.perspective(glm::radians(59.f), float(RES.x) / RES.y, 0.1f, 50.f);
+    camera.perspective(glm::radians(59.f), float(RES.x) / RES.y, 0.1f, 500.f);
 
-    Mesh mesh = loadOBJ(RES_DIRECTORY "res/bunny.obj");
-    // Scale and center mesh
-    const float size = glm::compMax(mesh.max - mesh.min);
-    const glm::vec3 offset = -(mesh.min + (mesh.max - mesh.min) / 2.f);
-    const glm::mat4 modelToWorld =
+    World world = loadGLTF(RES_DIRECTORY "res/the_noble_craftsman/scene.gltf");
+
+    Mesh bunny = loadOBJ(RES_DIRECTORY "res/bunny.obj");
+    // Scale and center bunny
+    const float size = glm::compMax(bunny.max - bunny.min);
+    const glm::vec3 offset = -(bunny.min + (bunny.max - bunny.min) / 2.f);
+    const glm::mat4 bunnyToWorld =
         glm::translate(
             glm::scale(
                 glm::mat4(
@@ -163,7 +197,8 @@ int main()
         float clearTime = t.getMillis();
 
         t.reset();
-        drawMesh(mesh, modelToWorld, camera, &fb);
+        // drawMesh(bunny, bunnyToWorld, camera, &fb);
+        drawWorld(world, camera, &fb);
         float drawTime = t.getMillis();
 
         t.reset();
